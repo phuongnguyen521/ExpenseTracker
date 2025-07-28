@@ -16,8 +16,8 @@ spring:
   datasource:
     url: jdbc:mysql://sql12.freesqldatabase.com:3306/sql12792329 # URL for MySQL host
     driver-class-name: com.mysql.cj.jdbc.Driver # The JDBC driver for MySQL
-    username: sql12792329
-    password: FwxZQLeQm5
+    username: 
+    password: 
 
   jpa:
     hibernate:
