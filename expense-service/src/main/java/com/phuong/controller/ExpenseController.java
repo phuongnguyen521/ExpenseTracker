@@ -1,9 +1,12 @@
 package com.phuong.controller;
 
+import com.phuong.exception.ResourceNotFoundException;
 import com.phuong.model.AppUser;
 import com.phuong.model.Expense;
 import com.phuong.service.ExpenseService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,115 +15,127 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+@Slf4j
 @RestController
 @RequiredArgsConstructor
+@RequestMapping("/expenses")
 public class ExpenseController {
 
     private final ExpenseService expenseService;
 
-    @GetMapping("/expenses/categories/{username}")
+    @GetMapping("/categories/{username}")
     public ResponseEntity<List<String>> getAllExpenseCategories(@PathVariable String username) {
-        Optional<AppUser> user = getUserFromAuthentication(username);
-        List<String> categories = new ArrayList<>();
+        log.info("Received request to get categories for username: {}", username);
 
-        if (user.isPresent()) {
-            categories = expenseService.getAllExpenseCategories(user.get().getId());
-        }
+        AppUser user = getUserFromAuthentication(username);
+        List<String> categories = expenseService.getAllExpenseCategories(user.getId());
 
         if (categories.isEmpty()) {
-            return ResponseEntity
-                    .status(HttpStatus.NO_CONTENT)
-                    .body(null);
+            log.info("No categories for username: {}", username);
+            return ResponseEntity.noContent().build();
         }
+        log.info("Getting {} categories for username: {}", categories.size(), username);
         return ResponseEntity.ok(categories);
     }
 
-    @GetMapping("/expenses/day/{date}/{username}")
+    @GetMapping("/day/{date}/{username}")
     public ResponseEntity<List<Expense>> getExpenseByDay(@PathVariable String date,
                                                          @PathVariable String username) {
-        Optional<AppUser> user = getUserFromAuthentication(username);
+        log.info("Received request to get expenses for username: {} by date: {}", username, date);
+        AppUser user = getUserFromAuthentication(username);
 
-        List<Expense> expenses = new ArrayList<>();
-        if (user.isPresent()) {
-            expenses = expenseService.getExpenseByDay(date, user.get().getId());
-        }
+        List<Expense> expenses = expenseService.getExpenseByDay(date, user.getId());
+        log.info("Getting {} expenses for username: {} by date: {}",
+                expenses.size(), username, date);
+
         return ResponseEntity.ok(expenses);
     }
 
-    @GetMapping("/expenses/category/{category}/month/{username}")
+    @GetMapping("/category/{category}/month/{username}")
     public ResponseEntity<List<Expense>> getExpenseByCategoryAndMonth(
             @PathVariable String category,
             @RequestParam String month,
             @PathVariable String username) {
-        Optional<AppUser> user = getUserFromAuthentication(username);
-        List<Expense> expenses = new ArrayList<>();
-        if (user.isPresent()) {
-            expenses = expenseService.getExpenseByCategoryAndMonth(category, month, user.get().getId());
-        }
+        log.info("Received request to get expenses for username: {} in category: {} by month: {}",
+                username, category, month);
+        AppUser user = getUserFromAuthentication(username);
+
+        List<Expense> expenses = expenseService.getExpenseByCategoryAndMonth(category, month, user.getId());
+        log.info("Getting {} expenses for username: {} in category: {} by month: {}",
+                expenses.size(), username, category, month);
+
         return ResponseEntity.ok(expenses);
     }
 
-    @GetMapping("/expenses/{id}/{username}")
+    @GetMapping("/{id}/{username}")
     public ResponseEntity<Optional<Expense>> getExpenseById(
             @PathVariable Long id,
             @PathVariable String username) {
-        Optional<AppUser> user = getUserFromAuthentication(username);
-        Optional<Expense> expense = Optional.empty();
-        if (user.isPresent()) {
-            expense = expenseService.getExpenseById(id, user.get().getId());
+        log.info("Received request to get expense for username: {} by Id: {}", username, id);
+        AppUser user = getUserFromAuthentication(username);
+        Optional<Expense> expense = expenseService.getExpenseById(id, user.getId());
+
+        if (expense.isEmpty()) {
+            throw new ResourceNotFoundException("Expense", "id", id);
         }
+
+        log.info("Getting expense for username: {} by Id: {}", username, id);
         return ResponseEntity.ok(expense);
     }
 
-    @PostMapping("/expenses/{username}")
+    @PostMapping("/{username}")
     public ResponseEntity<Expense> addExpense(
-            @RequestBody Expense expense,
+            @Valid @RequestBody Expense expense,
             @PathVariable String username) {
-        Optional<AppUser> user = getUserFromAuthentication(username);
-        Expense newExpense = null;
-        if (user.isPresent()) {
-            newExpense = expenseService.addExpense(expense, user.get().getId());
-        }
+        log.info("Received request to add expense for username: {}", username);
+        AppUser user = getUserFromAuthentication(username);
+        Expense newExpense = expenseService.addExpense(expense, user.getId());
+
+        log.info("Adding expense for username: {} with Id: {}",
+                username, newExpense.getId());
         return new ResponseEntity<>(newExpense, HttpStatus.CREATED);
     }
 
-    @PutMapping("/expenses/{id}/{username}")
+    @PutMapping("/{id}/{username}")
     public ResponseEntity<Expense> updateExpense(
             @PathVariable Long id,
-            @RequestBody Expense expense,
+            @Valid @RequestBody Expense expense,
             @PathVariable String username) {
-        Optional<AppUser> user = getUserFromAuthentication(username);
-        boolean isUpdated = false;
-        if (user.isPresent()) {
-            expense.setId(id);
-            isUpdated = expenseService.updateExpense(expense, user.get().getId());
+        log.info("Received request to update expense for username: {} with Id: {}", username, id);
+        AppUser user = getUserFromAuthentication(username);
+        expense.setId(id);
+        boolean isUpdated = expenseService.updateExpense(expense, user.getId());
+
+        if (!isUpdated) {
+            throw new ResourceNotFoundException("Expense", "id", id);
         }
 
-        if (isUpdated) {
-            return new ResponseEntity<>(expense, HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
+        log.info("Updating expense for username: {} with Id: {}", username, id);
+        return ResponseEntity.ok(expense);
     }
 
-    @DeleteMapping("/expenses/{id}/{username}")
+    @DeleteMapping("/{id}/{username}")
     public ResponseEntity<Void> updateExpense(
             @PathVariable Long id,
             @PathVariable String username) {
-        Optional<AppUser> user = getUserFromAuthentication(username);
-        boolean isDelete = false;
-        if (user.isPresent()) {
-            isDelete = expenseService.deleteExpense(id, user.get().getId());
+        log.info("Received request to delete expense for username: {} with Id: {}", username, id);
+        AppUser user = getUserFromAuthentication(username);
+        boolean isDelete = expenseService.deleteExpense(id, user.getId());
+
+        if (!isDelete) {
+            throw new ResourceNotFoundException("Expense", "id", id);
         }
 
-        if (isDelete) {
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        } else {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
+        log.info("delete expense for username: {} with Id: {}", username, id);
+        return ResponseEntity.noContent().build();
     }
 
-    private Optional<AppUser> getUserFromAuthentication(String username) {
-        return expenseService.findByUsername(username);
+    private AppUser getUserFromAuthentication(String username) {
+        log.debug("Getting user by username: {}", username);
+        Optional<AppUser> userOpt = expenseService.findByUsername(username);
+        if (userOpt.isEmpty()) {
+            throw new ResourceNotFoundException("User", "username", username);
+        }
+        return userOpt.get();
     }
 }
