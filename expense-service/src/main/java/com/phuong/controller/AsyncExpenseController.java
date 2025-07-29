@@ -95,7 +95,7 @@ public class AsyncExpenseController {
                 });
     }
 
-    @GetMapping("/user/{userId}/summary")
+    @GetMapping("/user/{userId}/reports/monthly")
     public CompletableFuture<ResponseEntity<ExpenseReport>> generateMonthlyReport(
             @PathVariable Long userId,
             @RequestParam int month,
@@ -112,7 +112,7 @@ public class AsyncExpenseController {
                 });
     }
 
-    @GetMapping("/user/{userId}/summary")
+    @GetMapping("/user/{userId}/reports/category")
     public CompletableFuture<ResponseEntity<ExpenseReport>> generateCategoryReport(
             @PathVariable Long userId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
@@ -206,11 +206,11 @@ public class AsyncExpenseController {
                 });
     }
 
-    @PostMapping("/user/{userId}/expense/{id}")
+    @DeleteMapping("/user/{userId}/expense/{id}")
     public CompletableFuture<ResponseEntity<Void>> deleteExpense(
             @PathVariable Long userId,
             @PathVariable Long id) {
-        log.info("Async request: Update expense for user: {} by Id: {}", userId, id);
+        log.info("Async request: Delete expense for user: {} by Id: {}", userId, id);
 
         return expenseService.deleteExpenseAsync(id, userId)
                 .thenApply(isDeleted -> {
@@ -219,11 +219,11 @@ public class AsyncExpenseController {
                         throw new ResourceNotFoundException("Expense", "id", id);
                     }
 
-                    log.info("Async response: Update expense for user: {} by Id: {}", userId, id);
+                    log.info("Async response: Delete expense for user: {} by Id: {}", userId, id);
                     return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
 
                 }).exceptionally(ex -> {
-                    log.error("Error getting expenses by user: {} by Id: {}", userId, id, ex);
+                    log.error("Error deleting expenses by user: {} by Id: {}", userId, id, ex);
                     return ResponseEntity.internalServerError().build();
                 });
     }

@@ -102,7 +102,7 @@ public class AsyncExpenseServiceImpl implements AsyncExpenseService {
                     userId, startDate, endDate, Thread.currentThread().getName());
             try {
                 List<Expense> expenses = expenseRepository.findByUserIdAndDateBetweenOrderByDateDesc(
-                        userId, startDate.atStartOfDay(), endDate.atTime(23, 59, 59));
+                        userId, startDate, endDate);
 
                 List<ExpenseResponse> responses = expenseMapper.toResponseList(expenses);
                 log.info("Getting {} expenses for user Id: {} in date range",
@@ -125,7 +125,7 @@ public class AsyncExpenseServiceImpl implements AsyncExpenseService {
                     userId, Thread.currentThread().getName());
             try {
                 List<Expense> expenses = expenseRepository.findByUserIdAndDateBetweenOrderByDateDesc(
-                        userId, startDate.atStartOfDay(), endDate.atTime(23, 59, 59));
+                        userId, startDate, endDate);
 
                 ExpenseSummary summary = reportMapper.createSummary(expenses, userId, startDate, endDate);
 
@@ -151,7 +151,7 @@ public class AsyncExpenseServiceImpl implements AsyncExpenseService {
             try {
                 CompletableFuture<AppUser> user = validateUserExistAsync(userId);
                 AppUser userResult = user.join();
-                if (user.join() != null) {
+                if (userResult == null) {
                     throw new ResourceNotFoundException("User", "Id", userId);
                 }
                 Expense expense = expenseMapper.toEntityWithUser(request, userResult);
@@ -160,14 +160,14 @@ public class AsyncExpenseServiceImpl implements AsyncExpenseService {
                 if (!builder.isEmpty()) {
                     throw new BusinessRuleException(builder.toString());
                 }
-                
+
                 Expense savedExpense = expenseRepository.save(expense);
 
                 CompletableFuture.allOf(
                         syncExpenseWithExternalSystemAsync(userId)
                 ).exceptionally(ex -> {
-                   log.warn("Some post-processing operations failed for expense creation", ex);
-                   return null;
+                    log.warn("Some post-processing operations failed for expense creation", ex);
+                    return null;
                 });
 
                 ExpenseResponse response = expenseMapper.toResponse(savedExpense);
@@ -256,7 +256,7 @@ public class AsyncExpenseServiceImpl implements AsyncExpenseService {
             try {
                 CompletableFuture<AppUser> user = validateUserExistAsync(userId);
                 AppUser userResult = user.join();
-                if (user.join() != null) {
+                if (user == null) {
                     throw new ResourceNotFoundException("User", "Id", userId);
                 }
 
@@ -290,7 +290,7 @@ public class AsyncExpenseServiceImpl implements AsyncExpenseService {
                 log.info("Created {} expenses for User Id: {}",
                         savedExpenses.size(), userId);
                 return responses;
-                
+
             } catch (DataAccessException ex) {
                 log.error("Database error while creating expenses for user Id: {}", userId, ex);
                 throw new RuntimeException("Failed to create expenses for user Id", ex);
@@ -309,8 +309,15 @@ public class AsyncExpenseServiceImpl implements AsyncExpenseService {
                         .uri("http://user-service/user/" + userId.toString())
                         .retrieve()
                         .bodyToMono(AppUser.class)
-                        .timeout(Duration.ofSeconds(10))
+                        .timeout(Duration.ofSeconds(30))
+                        .doOnSuccess(u -> log.debug("Get user: {}", userId))
+                        .doOnError(error -> log.error("Error calling user service for userId: {}", userId, error))
                         .block();
+                if (user != null) {
+                    log.debug("User found: {}", userId);
+                } else {
+                    log.warn("User not found with Id: {}", userId);
+                }
                 return user;
 
             } catch (WebClientResponseException ex) {
@@ -346,8 +353,7 @@ public class AsyncExpenseServiceImpl implements AsyncExpenseService {
                 LocalDate endDate = startDate.plusMonths(1).minusDays(1);
 
                 List<Expense> expenses = expenseRepository.findByUserIdAndDateBetweenOrderByDateDesc(
-                        userId, startDate.atStartOfDay(), endDate.atTime(23, 59, 59)
-                );
+                        userId, startDate, endDate);
 
                 ExpenseReport report = reportMapper.createReport(expenses, startDate, endDate, "Monthly Report");
 
@@ -373,8 +379,7 @@ public class AsyncExpenseServiceImpl implements AsyncExpenseService {
             try {
 
                 List<Expense> expenses = expenseRepository.findByUserIdAndDateBetweenOrderByDateDesc(
-                        userId, startDate.atStartOfDay(), endDate.atTime(23, 59, 59)
-                );
+                        userId, startDate, endDate);
 
                 ExpenseReport report = reportMapper.createReport(expenses, startDate, endDate, "Category Report");
 
@@ -404,8 +409,7 @@ public class AsyncExpenseServiceImpl implements AsyncExpenseService {
                 log.warn("Expenses synced with external systems for user: {}", userId, ex);
                 throw new ExternalServiceException("user-service",
                         "Unexpected error: " + ex.getMessage(), ex);
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 log.error("Unexpected error while getting user with user Id: {}", userId, ex);
                 throw new ExternalServiceException("user-service",
                         "Unexpected error: " + ex.getMessage(), ex);
@@ -415,7 +419,7 @@ public class AsyncExpenseServiceImpl implements AsyncExpenseService {
 
     private StringBuilder validateExpense(Expense expense, boolean isExisted) {
         StringBuilder builder = new StringBuilder();
-        
+
         if (expense == null) {
             builder.append("Expense cannot be null");
         } else {

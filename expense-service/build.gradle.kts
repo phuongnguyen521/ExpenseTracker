@@ -18,8 +18,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa:3.4.5")
 
     // Database
-    // implementation("org.postgresql:postgresql")
-    implementation("com.mysql:mysql-connector-j")
+    implementation("org.postgresql:postgresql")
+    // implementation("com.mysql:mysql-connector-j")
 
     // Lombok
     implementation("org.projectlombok:lombok:1.18.36")

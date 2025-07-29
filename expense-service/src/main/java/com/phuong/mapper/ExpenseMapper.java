@@ -83,7 +83,6 @@ public interface ExpenseMapper {
      * @return the expense entity
      */
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "account", ignore = true)
     @Mapping(target = "user", source = "user")
     @Mapping(target = "amount", source = "request.amount")
     @Mapping(target = "category", source = "request.category")
