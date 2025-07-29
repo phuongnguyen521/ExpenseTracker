@@ -17,6 +17,7 @@ spring:
           uri: lb://expense-service
           predicates:
             - Path=/expenses/**
+            - Path=/api/v1/expenses/**
         # discovery server service
         - id: eureka-server
           uri: http://localhost:8761

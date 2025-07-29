@@ -5,12 +5,12 @@ import com.phuong.exception.ResourceNotFoundException;
 import com.phuong.model.AppUser;
 import com.phuong.repository.UserRepository;
 import com.phuong.service.UserService;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
@@ -45,6 +45,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public AppUser findByUsername(String username) {
         log.debug("Searching for user with username: {}", username);
         if (username == null || username.trim().isEmpty()) {
@@ -67,6 +68,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Optional<AppUser> findUserById(Long id) {
         log.debug("Searching for user by id: {}", id);
 

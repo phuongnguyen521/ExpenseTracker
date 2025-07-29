@@ -1,6 +1,6 @@
 package com.phuong.exception;
 
-import com.phuong.dto.ErrorResponse;
+import com.phuong.dto.response.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;

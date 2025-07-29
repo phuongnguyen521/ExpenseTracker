@@ -115,7 +115,7 @@ public class ExpenseController {
     }
 
     @DeleteMapping("/{id}/{username}")
-    public ResponseEntity<Void> updateExpense(
+    public ResponseEntity<Void> deleteExpense(
             @PathVariable Long id,
             @PathVariable String username) {
         log.info("Received request to delete expense for username: {} with Id: {}", username, id);

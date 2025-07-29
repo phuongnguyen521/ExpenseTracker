@@ -42,6 +42,11 @@ dependencies {
     // Validation
     implementation("org.springframework.boot:spring-boot-starter-validation:3.4.5")
 
+    // MapStruct for entity-DTO mapping
+    implementation("org.mapstruct:mapstruct:1.5.5.Final")
+    annotationProcessor("org.mapstruct:mapstruct-processor:1.5.5.Final")
+    annotationProcessor("org.projectlombok:lombok-mapstruct-binding:0.2.0")
+
     // Junit
     testImplementation(platform("org.junit:junit-bom:5.9.1"))
     testImplementation("org.junit.jupiter:junit-jupiter")

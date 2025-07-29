@@ -1,4 +1,4 @@
-package com.phuong.dto;
+package com.phuong.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;

@@ -17,6 +17,7 @@ import org.springframework.web.reactive.function.client.WebClientException;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.time.Duration;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -111,7 +112,7 @@ public class ExpenseServiceImpl implements ExpenseService {
         log.debug("Fetching expenses for user Id: {} in category: {} for month: {}", userId, category, month);
 
         if (month == null || month.trim().isEmpty()) {
-            throw new BusinessRuleException("Month cannot be null or empty");
+            throw new BusinessRuleException("Month is invalid");
         }
 
         if (category == null || category.trim().isEmpty()) {
@@ -122,7 +123,7 @@ public class ExpenseServiceImpl implements ExpenseService {
             List<Expense> expenses = expenseRepository.findByUserIdOrderByDateDesc(userId)
                     .stream()
                     .filter(expense -> expense.getCategory().equalsIgnoreCase(category)
-                            && expense.getDate().startsWith(month))
+                            && String.valueOf(expense.getDate().getMonthValue()).equals(month))
                     .toList();
             log.info("Found {} expenses for user Id: {} in category: {} for month: {}",
                     expenses.size(), userId, category, month);
@@ -302,7 +303,7 @@ public class ExpenseServiceImpl implements ExpenseService {
             throw new BusinessRuleException("Expense category is required");
         }
 
-        if (expense.getDate() == null || expense.getDate().trim().isEmpty()) {
+        if (expense.getDate() == null) {
             throw new BusinessRuleException("Expense date is required");
         }
 

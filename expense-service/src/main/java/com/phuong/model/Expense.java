@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.time.LocalDate;
+
 @Entity
 @Data
 public class Expense {
@@ -13,7 +15,7 @@ public class Expense {
 
 
     private int expenseType;
-    private String date;
+    private LocalDate date;
     private double amount;
     private String category;
     private String account;
